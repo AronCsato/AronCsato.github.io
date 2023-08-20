@@ -1,4 +1,5 @@
 from flask import Flask, redirect, url_for, request, render_template
+import weebscraping
 
 app = Flask(__name__,template_folder='template')
 
@@ -16,8 +17,9 @@ def part_code():
             return "<html><body> <h1>Invalid search</h1></body></html>"
         else:
             part_code = request.args.get('search2')
+            price, product, address, min_index = weebscraping.main(part_code)
             return render_template('part_code.html',
-                                    part_code = part_code)
+                                    part_code = part_code, product = product, price = price, address = address, len = len(product), min_index =  min_index)
  
  
 # Start with flask web app with debug as
