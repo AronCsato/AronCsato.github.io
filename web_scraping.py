@@ -1,7 +1,7 @@
 from flask import Flask, redirect, url_for, request, render_template
 import weebscraping
 
-app = Flask(__name__,template_folder='template')
+app = Flask(__name__,template_folder='F:/webpage_git/AronCsato.github.io/template')
 
 
 @app.route('/')
