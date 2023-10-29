@@ -55,6 +55,9 @@ class Web_Search:
     def create_table_elements(self,prod_names,prod_prices,address):
         pass
 
+    def close_webdriver(self):
+        self.driver.quit()
+
 class Episa(Web_Search):
     def __init__(self, address, price_class, product_name_class, address_class) -> None:
         super().__init__(address, price_class, product_name_class, address_class)
@@ -70,7 +73,6 @@ class Episa(Web_Search):
         address = self.driver.find_elements("xpath","//div[@class='{}']/a".format(self.address_class))
         prod_name = self.filter_prod_name(prod_name)
         prices_temp,prod_name_temp,address_temp = self.create_table_elements(prices,prod_name,address)
-
         return prices_temp,prod_name_temp,address_temp
     
     def filter_prod_name(self,prod_names):
@@ -85,15 +87,15 @@ class Episa(Web_Search):
         prod_name = []
         prod_address = []
         for i in range(0,len(prod_prices)):
-            prices.append(prod_prices[i].text.split("Lei",1)[1].lstrip("\n"))
-            prod_name.append(prod_names[i].text)
+            prices.append(prod_prices[i].text.split("Lei",1)[1].split(" Lei",1)[0].lstrip("\n"))
+            prod_name.append(prod_names[i].text.split("Producator: ",1)[1].split("\n")[0])
             prod_address.append(address[i].get_attribute('href'))
         return prices,prod_name,prod_address
 
     def print_prices_prd_name(self, prod_names, prod_prices, address) -> None:
         super().print_prices_prd_name(prod_names, prod_prices,address)
         for i in range(0,len(prod_prices)):
-            print(prod_names[i].text)
+            print(prod_names[i].text.split("Producator:",1)[1],end='\n')
             print(prod_prices[i].text.split("Lei",1)[1],end='\n')
             print(address[i].get_attribute('href'))
 
@@ -115,7 +117,7 @@ class Unix(Web_Search):
     def find_product(self, product_code):
         super().find_product(product_code)
         self.driver.get(self.address+product_code)
-        time.sleep(10)
+        time.sleep(3)
         scroll, one_page_height, nr_of_scrolls = self.get_scrollable_object()
         prices = []
         prod_name = []
@@ -207,54 +209,30 @@ class Unix(Web_Search):
             temp_list.append(float(prod_prices[j].text.split(" ", 1)[0].replace(",",".")))
         return temp_list.index(min(temp_list))
     
+def min_index_find(price):
+    temp_list = []
+    for j in range(0,len(price)):
+        temp_list.append(float(price[j].split(" ", 1)[0].replace(",",".")))
+    return temp_list.index(min(temp_list))
+    
 def main(part_code):
     episa = Episa("https://www.epiesa.ro/cautare-piesa/?find=","bricolaje-bottom-text","sub-product-detail","product-auto-title")
     episa.init_driver("chrome",())
     price, product, address = episa.find_product(part_code)
-    min_index = episa.find_low_price(price)
-    # unix = Unix("https://www.unixauto.ro/webshop/cikklista?cSearch=","price__amount--single","product-data--title--text","product-id")
-    # unix.init_driver("chrome",())
-    return price,product, address, min_index
+    episa.close_webdriver()
+    unix = Unix("https://www.unixauto.ro/webshop/cikklista?cSearch=","price__amount--single","product-data--title--text","product-id")
+    unix.init_driver("chrome",())
     # part_code = "4m0819439"
-    # price, product, address = unix.find_product(part_code)
+    price_1, product_1, address_1 = unix.find_product(part_code)
+    unix.close_webdriver()
+    price.extend(price_1)
+    product.extend(product_1)
+    address.extend(address_1)
+    min_index = min_index_find(price)
+    return price, product, address, min_index
+
     
     
 if __name__ == "__main__":
-    part_code = "4m0819439"
+    # part_code = "4m0819439"
     main(part_code)
-#     episa = Episa("https://www.epiesa.ro/cautare-piesa/?find=","bricolaje-bottom-text","sub-product-detail","product-auto-title")
-#     episa.init_driver("chrome",())
-#     #Introduce the part code
-#     # part_code = input("Alkatresz kod:\n")
-#     part_code = "4m0819439"
-#     price, product, address = episa.find_product(part_code)
-#     episa.print_prices_prd_name(product,price,address)
-#     # for adres in address:
-    #     print(adres.)
-
-
-
-
-# opts = webdriver.ChromeOptions()
-# # The below line will make your browser run in background when uncommented
-# # opts.add_argument('--headless')
-    
-# driver = webdriver.Chrome()
-
-# driver.get("https://www.epiesa.ro/cautare-piesa/?find={}".format(part_code))
-
-# prices = driver.find_elements(By.CLASS_NAME,"bricolaje-bottom-text")
-# prod_name= driver.find_elements(By.CLASS_NAME,"sub-product-detail")
-
-
-
-# for price in prices:
-#     print(price.text)
-# driver.quit()
-
-# table = self.driver.find_element(By.CSS_SELECTOR,'.table-columns-and-body.d-flex.flex-column.flex-grow-1.position-relative.min-height-0')
-# scroll = self.driver.find_element(By.CSS_SELECTOR,'.without-focus-style:nth-child(1) .app-mixed-size-virtual-scroll-viewport')
-# self.driver.execute_script("aruments[0].scrollintoView();",scroll)
-# self.driver.execute_script("arguments[0].scroll(0, arguments[0].scrollHeight);",scroll) ### ez mukodik
-# last_height = self.driver.execute_script("return arguments[0].scrollHeight", scroll)
-# self.driver.execute_script("arguments[0].scrollTop = {}".format(Y), scroll) # ez is mukodik

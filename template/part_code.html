@@ -102,10 +102,10 @@
             {% for i in range(0, len) %}
                 <tr>
                     {% if i == min_index: %}
-                        <td><a href={{ address[i] target="_blank">{{ product[i] }}</a></td>
+                        <td><a href= "{{ address[i] }}" target="_blank">{{ product[i] }}</a></td>
                         <td class="cell-highlight">{{ price[i] }}</td>
                     {% else %}
-                        <td><a href="{{ address[i] }}" target="_blank">{{ product[i] }}</a></td>
+                        <td><a href= "{{ address[i] }}"  target="_blank">{{ product[i] }}</a></td>
                         <td>{{ price[i]}}</td>
                     {% endif %}
                 </tr>
