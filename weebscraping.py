@@ -1,5 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 import time
 import math
 import numpy as np
@@ -29,7 +30,10 @@ class Web_Search:
                 # opts.add_argument("user_agent=DN")
                 opts.add_argument("--user-data-dir=C:\\Users\\PC\\AppData\\Local\\Google\\Chrome\\User Data")
                 self.driver = webdriver.Chrome(opts)
-                # self.driver.delete_all_cookies()
+                self.driver.delete_all_cookies()
+                # self.driver.get("chrome://settings/clearBrowserData")
+                # self.driver.switchTo().activeElement()
+                # self.driver.findElement(By.cssSelector("* /deep/ #clearBrowsingDataConfirm")).click()
             elif driver_typ=="edge":
                 opts = webdriver.EdgeOptions()
                 opts.add_experimental_option("useAutomationExtension", False)
@@ -64,10 +68,18 @@ class Episa(Web_Search):
 
     def init_driver(self, driver_typ, opts) -> None:
         super().init_driver(driver_typ, opts)
+
+    def input_in_search_bar(self,product_code):
+        input = self.driver.find_elements("xpath","//*[@name='find']")
+        input[1].send_keys(product_code)
+        input[1].send_keys(Keys.RETURN)
     
     def find_product(self, product_code):
         super().find_product(product_code)
-        self.driver.get(self.address+product_code)
+        # self.driver.get(self.address+product_code)
+        self.driver.get(self.address)
+        self.input_in_search_bar(product_code)
+
         prices = self.driver.find_elements(By.CLASS_NAME,self.price_class)
         prod_name= self.driver.find_elements(By.CLASS_NAME,self.product_name_class)
         address = self.driver.find_elements("xpath","//div[@class='{}']/a".format(self.address_class))
@@ -87,7 +99,7 @@ class Episa(Web_Search):
         prod_name = []
         prod_address = []
         for i in range(0,len(prod_prices)):
-            prices.append(prod_prices[i].text.split("Lei",1)[1].split(" Lei",1)[0].lstrip("\n"))
+            prices.append(prod_prices[i].text.split("Lei",1)[0].split(" ", 1)[0])
             prod_name.append(prod_names[i].text.split("Producator: ",1)[1].split("\n")[0])
             prod_address.append(address[i].get_attribute('href'))
         return prices,prod_name,prod_address
@@ -117,7 +129,7 @@ class Unix(Web_Search):
     def find_product(self, product_code):
         super().find_product(product_code)
         self.driver.get(self.address+product_code)
-        time.sleep(3)
+        time.sleep(5)
         scroll, one_page_height, nr_of_scrolls = self.get_scrollable_object()
         prices = []
         prod_name = []
@@ -129,9 +141,9 @@ class Unix(Web_Search):
             address.append(address_temp)
             self.driver.execute_script("arguments[0].scrollTop = {}".format(i*one_page_height), scroll)
 
-        prices = self.flatten_arrays(np.asarray(prices))
-        prod_name = self.flatten_arrays(np.asarray(prod_name))
-        address = self.flatten_arrays(np.asarray(address))
+        prices = self.flatten_arrays(prices)
+        prod_name = self.flatten_arrays(prod_name)
+        address = self.flatten_arrays((address))
         prices,prod_name,address =self.delete_duplicates(prices,prod_name,address)
         return  prices,prod_name,address
         
@@ -142,7 +154,8 @@ class Unix(Web_Search):
         prod_name = []
         prod_address = []
         address = self.create_address(address)
-        for i in range(0,len(prod_prices)):
+        
+        for i in range(0,min(len(prod_prices),len(prod_names),len(address))):
             prices.append(prod_prices[i].text.split(" ", 1)[0])
             prod_name.append(prod_names[i].text)
             prod_address.append(address[i])
@@ -212,7 +225,7 @@ class Unix(Web_Search):
 def min_index_find(price):
     temp_list = []
     for j in range(0,len(price)):
-        temp_list.append(float(price[j].split(" ", 1)[0].replace(",",".")))
+        temp_list.append(float(price[j].split(" ", 1)[0].replace(".","").replace(",",".")))
     return temp_list.index(min(temp_list))
     
 def main(part_code):
@@ -230,9 +243,10 @@ def main(part_code):
     address.extend(address_1)
     min_index = min_index_find(price)
     return price, product, address, min_index
+    # return price_1, product_1, address_1, min_index
 
     
     
 if __name__ == "__main__":
-    # part_code = "4m0819439"
+    part_code = "1C0906517A"
     main(part_code)
