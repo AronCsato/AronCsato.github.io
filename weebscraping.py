@@ -5,47 +5,73 @@ import time
 import math
 import numpy as np
 import collections
+import pyautogui
+import sys
 
 
 class Web_Search:
+    _instance = None
+
     def __init__(self,address,price_class,product_name_class,address_class) -> None:
         self.address = address
         self.price_class = price_class
         self.product_name_class = product_name_class
         self.address_class = address_class
 
-    def init_driver(self,driver_typ,opts)->None:
+    @staticmethod
+    def init_driver(driver_typ,opts):
         try:
-            if driver_typ=="chrome":
-                opts = webdriver.ChromeOptions()
-                # opts.add_argument('--headless')
-                opts.add_experimental_option("useAutomationExtension", False)
-                opts.add_experimental_option("excludeSwitches", ['enable-automation']) 
-                # opts.add_argument("--disable-extensions")
-                # opts.add_argument("--disable-popup-blocking")
-                # opts.add_argument("--profile-directory=Default")
-                # opts.add_argument("--ignore-certificate-errors")
-                # opts.add_argument("--disable-plugins-discovery")
-                # opts.add_argument("--incognito")
-                # opts.add_argument("user_agent=DN")
-                opts.add_argument("--user-data-dir=C:\\Users\\PC\\AppData\\Local\\Google\\Chrome\\User Data")
-                self.driver = webdriver.Chrome(opts)
-                self.driver.delete_all_cookies()
-                # self.driver.get("chrome://settings/clearBrowserData")
-                # self.driver.switchTo().activeElement()
-                # self.driver.findElement(By.cssSelector("* /deep/ #clearBrowsingDataConfirm")).click()
-            elif driver_typ=="edge":
-                opts = webdriver.EdgeOptions()
-                opts.add_experimental_option("useAutomationExtension", False)
-                opts.add_experimental_option("excludeSwitches", ['enable-automation']) 
-                self.driver = webdriver.Edge(opts)
+            if Web_Search._instance is None:
+                if driver_typ=="chrome":
+                    opts = webdriver.ChromeOptions()
+                    # opts.add_argument('--headless')
+                    opts.add_experimental_option("useAutomationExtension", False)
+                    opts.add_experimental_option("excludeSwitches", ['enable-automation']) 
+                    opts.add_argument("--disable-extensions")
+                    opts.add_argument("--disable-popup-blocking")
+                    opts.add_argument("--profile-directory=Default")
+                    opts.add_argument("--ignore-certificate-errors")
+                    opts.add_argument("--disable-plugins-discovery")
+                    # opts.add_argument("--incognito")
+                    # opts.add_argument("user_agent=DN")
+                    opts.add_argument("--user-data-dir=C:\\Users\\PC\\AppData\\Local\\Google\\Chrome\\User Data")
+                    # driver.get('https://www.google.ro/')
+                    # driver.delete_all_cookies()
+                    # driver.get("chrome://settings/clearBrowserData")
+                    # driver.switchTo().activeElement()
+                    # driver.findElement(By.cssSelector("* /deep/ #clearBrowsingDataConfirm")).click()
+                    Web_Search._instance = webdriver.Chrome(opts)
+                elif driver_typ=="edge":
+                    opts = webdriver.EdgeOptions()
+                    opts.add_experimental_option("useAutomationExtension", False)
+                    opts.add_experimental_option("excludeSwitches", ['enable-automation']) 
+                    Web_Search._instance = webdriver.Edge(opts)
+            return  Web_Search._instance
         except Exception as error:
             print("Not correct browser type.\n",error)
+    
 
     def login_with_user(self,login_pg,user,password):
         self.login_pg = login_pg
         self.user = user
         self.password = password
+
+    def close_all_open_tabs(self):
+        if Web_Search._instance:
+            for i in range(1,len(Web_Search._instance.window_handles)):
+                Web_Search._instance.switch_to.window(Web_Search._instance.window_handles[i])
+                Web_Search._instance.close()
+
+    def new_tab(self)->None:
+        if Web_Search._instance:
+            # Open a new tab
+            Web_Search._instance.execute_script("window.open('');")
+            # Switch to the new tab
+            Web_Search._instance.switch_to.window(Web_Search._instance.window_handles[len(Web_Search._instance.window_handles)-1])
+        else:
+            print("The browsre is not initialized")
+            sys.exit()
+        
 
     def find_product(self,product_code)->None:
         self.product_code = product_code
@@ -60,14 +86,12 @@ class Web_Search:
         pass
 
     def close_webdriver(self):
-        self.driver.quit()
+        Web_Search._instance.quit()
 
 class Episa(Web_Search):
     def __init__(self, address, price_class, product_name_class, address_class) -> None:
         super().__init__(address, price_class, product_name_class, address_class)
-
-    def init_driver(self, driver_typ, opts) -> None:
-        super().init_driver(driver_typ, opts)
+        self.driver = Web_Search.init_driver("chrome",())
 
     def input_in_search_bar(self,product_code):
         input = self.driver.find_elements("xpath","//*[@name='find']")
@@ -76,7 +100,7 @@ class Episa(Web_Search):
     
     def find_product(self, product_code):
         super().find_product(product_code)
-        # self.driver.get(self.address+product_code)
+        # driver.get(self.address+product_code)
         self.driver.get(self.address)
         self.input_in_search_bar(product_code)
 
@@ -99,7 +123,7 @@ class Episa(Web_Search):
         prod_name = []
         prod_address = []
         for i in range(0,len(prod_prices)):
-            prices.append(prod_prices[i].text.split("Lei",1)[0].split(" ", 1)[0])
+            prices.append(prod_prices[i].text.split("Lei",1)[1].split(" ",1)[0].replace("\n",""))
             prod_name.append(prod_names[i].text.split("Producator: ",1)[1].split("\n")[0])
             prod_address.append(address[i].get_attribute('href'))
         return prices,prod_name,prod_address
@@ -122,13 +146,25 @@ class Episa(Web_Search):
 class Unix(Web_Search):
     def __init__(self, address, price_class, product_name_class, address_class) -> None:
         super().__init__(address, price_class, product_name_class, address_class)
+        self.driver = Web_Search.init_driver("chrome",())
 
-    def init_driver(self, driver_typ, opts) -> None:
-        super().init_driver(driver_typ, opts)
+
+    # def init_driver(self, driver_typ, opts) -> None:
+    #     super().init_driver(driver_typ, opts)
+
+    def input_in_search_bar(self,product_code):
+        input = self.driver.find_elements(By.ID,"header-search-box")
+        if len(input) ==0:
+            input = self.driver.find_elements(By.ID,"aside-nav-search-box")
+        input[0].send_keys(product_code)
+        input[0].send_keys(Keys.RETURN)
+        input[0].send_keys(Keys.RETURN)
     
     def find_product(self, product_code):
         super().find_product(product_code)
-        self.driver.get(self.address+product_code)
+        # driver.get(self.address+product_code)
+        time.sleep(5)
+        self.input_in_search_bar(product_code)
         time.sleep(5)
         scroll, one_page_height, nr_of_scrolls = self.get_scrollable_object()
         prices = []
@@ -175,7 +211,8 @@ class Unix(Web_Search):
 
 
     def get_scrollable_object(self):
-        scroll = self.driver.find_element(By.CSS_SELECTOR,'.without-focus-style:nth-child(1) .app-mixed-size-virtual-scroll-viewport') 
+        # scroll = driver.find_element(By.CSS_SELECTOR,'.without-focus-style:nth-child(1) .app-mixed-size-virtual-scroll-viewport') 
+        scroll = self.driver.find_element(By.CLASS_NAME,'app-mixed-size-virtual-scroll-viewport')
         max_height = self.driver.execute_script("return arguments[0].scrollHeight", scroll)
         one_page_height = scroll.size['height']
         nr_of_scrolls_needed = math.ceil(max_height/one_page_height)
@@ -184,16 +221,18 @@ class Unix(Web_Search):
     def login_with_user(self, login_pg, user, password):
         super().login_with_user(login_pg, user, password)
         self.driver.get(login_pg)
-        user_name = self.driver.find_element(By.ID,'login-username')
-        pass_word = self.driver.find_element(By.ID,'login-password')
-        login_btn = self.driver.find_elements(By.CLASS_NAME,'col-12.pb-2.col-md-6')
-        user_name.send_keys(self.user)
-        time.sleep(10)
-        pass_word.send_keys(self.password)
-        time.sleep(10)
-        login_btn = login_btn[1]
+        # user_name = driver.find_element(By.ID,'login-username')
+        # pass_word = driver.find_element(By.ID,'login-password')
+        login_btn = self.driver.find_elements(By.CLASS_NAME,'button__key-command')
+        # user_name.send_keys(self.user)
+        # time.sleep(10)
+        # pass_word.send_keys(self.password)
+        # time.sleep(10)
+        # login_btn = login_btn[1]
         time.sleep(3)
-        login_btn.click()
+        # Press Enter key
+        pyautogui.press('enter')
+        pyautogui.press('enter')
 
     def filter_prod_name(self,prod_names):
         for prod_name in prod_names:
@@ -230,14 +269,17 @@ def min_index_find(price):
     
 def main(part_code):
     episa = Episa("https://www.epiesa.ro/cautare-piesa/?find=","bricolaje-bottom-text","sub-product-detail","product-auto-title")
-    episa.init_driver("chrome",())
+    # episa.init_driver("chrome",())
+    # episa.close_all_open_tabs()
     price, product, address = episa.find_product(part_code)
-    episa.close_webdriver()
+    # episa.close_webdriver()
     unix = Unix("https://www.unixauto.ro/webshop/cikklista?cSearch=","price__amount--single","product-data--title--text","product-id")
-    unix.init_driver("chrome",())
+    # unix.init_driver("chrome",())
+    unix.new_tab()
+    unix.login_with_user('https://www.unixauto.ro/webshop/login','','')
     # part_code = "4m0819439"
     price_1, product_1, address_1 = unix.find_product(part_code)
-    unix.close_webdriver()
+    # unix.close_webdriver()
     price.extend(price_1)
     product.extend(product_1)
     address.extend(address_1)
@@ -247,6 +289,7 @@ def main(part_code):
 
     
     
-if __name__ == "__main__":
-    part_code = "1C0906517A"
-    main(part_code)
+# if __name__ == "__main__":
+#     # part_code = "1C0906517A"
+#     part_code = '8E0411318'
+#     main(part_code)
