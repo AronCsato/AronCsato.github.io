@@ -25,4 +25,4 @@ def part_code():
 # Start with flask web app with debug as
 # True only if this is the starting page
 if(__name__ == "__main__"):
-    app.run(debug=False)
+    app.run(debug=True, port=8076)
