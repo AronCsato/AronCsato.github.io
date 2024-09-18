@@ -1,8 +1,8 @@
 from flask import Flask, redirect, url_for, request, render_template
 import weebscraping
+import os
 
-app = Flask(__name__,template_folder='F:/webpage_git/AronCsato.github.io/template')
-
+app = Flask(__name__,template_folder= os.path.join((os.getcwd(),'templkate')))
 
 @app.route('/')
 def index():
