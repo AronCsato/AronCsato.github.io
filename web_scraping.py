@@ -2,7 +2,7 @@ from flask import Flask, redirect, url_for, request, render_template
 import weebscraping
 import os
 
-app = Flask(__name__,template_folder= os.path.join((os.getcwd(),'templkate')))
+app = Flask(__name__,template_folder= os.path.join(os.getcwd(),"template"))
 
 @app.route('/')
 def index():
