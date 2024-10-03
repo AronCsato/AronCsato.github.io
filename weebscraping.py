@@ -3,9 +3,11 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
 import math
 import numpy as np
 import sys
+import re
 
 
 class Web_Search:
@@ -135,10 +137,18 @@ class Episa(Web_Search):
         prod_name = []
         prod_address = []
         for i in range(0,len(prod_prices)):
-            prices.append(prod_prices[i].text.split("Lei",1)[0].split(" ",1)[0])
+            price_values = self.find_floats_in_str(prod_prices[i].text)
+            price_val = min(price_values)
+            prices.append(str(price_val))
             prod_name.append(prod_names[i].text.split("Producator: ",1)[1].split("\n")[0])
             prod_address.append(address[i].get_attribute('href'))
         return prices,prod_name,prod_address
+    
+    def find_floats_in_str(self,text):
+        pattern = r"[-+]?\d*\.\d+|\d+"
+        float_values = re.findall(pattern, text)
+        float_values = [float(value) for value in float_values]
+        return float_values
 
     def print_prices_prd_name(self, prod_names, prod_prices, address) -> None:
         super().print_prices_prd_name(prod_names, prod_prices,address)
@@ -234,14 +244,19 @@ class Unix(Web_Search):
     def login_with_user(self, login_pg, user, password):
         super().login_with_user(login_pg, user, password)
         self.driver.get(login_pg)
-        # user_name = driver.find_element(By.ID,'login-username')
-        # pass_word = driver.find_element(By.ID,'login-password')
-        # login_btn = self.wait_for_element(By.CLASS_NAME,'button__key-command')
-        # user_name.send_keys(self.user)
-        # time.sleep(10)
-        # pass_word.send_keys(self.password)
-        # time.sleep(10)
-        # login_btn = login_btn[1]
+        try:
+            home_element = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, "//*[text()='ACASA']")))
+            pass
+        except:
+            user_name = self.wait_for_element(By.ID,'login-username')
+            pass_word = self.wait_for_element(By.ID,'login-password')
+            login_btn = self.wait_for_element(By.CLASS_NAME,'button__key-command')
+            user_name[0].send_keys(self.user)
+            # time.sleep(10)
+            pass_word[0].send_keys(self.password)
+            # time.sleep(10)
+            # login_btn = login_btn[1]
+            ActionChains(self.driver).move_to_element(login_btn[1]).click().perform()
 
     def filter_prod_name(self,prod_names):
         for prod_name in prod_names:
@@ -282,12 +297,16 @@ class Autokarma(Web_Search):
         self.input_in_search_bar(product_code,'//input[@name = "searchcode"]',By.XPATH)
         prices = self.wait_for_element(By.XPATH,self.price_class)
         prod_name = self.wait_for_element(By.XPATH,self.product_name_class)
-        address = [None]*len(prod_name)
+        search_addres = "".join(['https://www.autokarma.ro/cautare-dupa-cod-produs?src=',product_code])
+        address = [search_addres]*len(prod_name)
         prices_temp,prod_name_temp,address_temp = self.create_table_elements(prod_name,prices,address)
+        page_count = 1
         while self.go_to_next_page():
+            page_count+=1
             price = self.wait_for_element(By.XPATH,self.price_class)
             prod = self.wait_for_element(By.XPATH,self.product_name_class)
-            addres = [None]*len(prod)
+            search_addres_pgs = "".join([search_addres,'&page=',str(page_count)])
+            addres = [search_addres_pgs]*len(prod)
             prices_temp2,prod_name_temp2,address_temp2 = self.create_table_elements(prod,price,addres)
             prices_temp.extend(prices_temp2)
             prod_name_temp.extend(prod_name_temp2)
@@ -353,7 +372,7 @@ def main(part_code):
     
     
 # if __name__ == "__main__":
-# #     # part_code = "1C0906517A"
+# # #     # part_code = "1C0906517A"
 
 
 #     part_code = '8E0411318'

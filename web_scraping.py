@@ -3,7 +3,7 @@ import weebscraping
 import os
 import sys
 
-if (sys, 'frozen', False):
+if getattr(sys, 'frozen', False):
      app = Flask(__name__,template_folder = os.path.join(sys._MEIPASS,"template"))
 else:
      app = Flask(__name__,template_folder= os.path.join(os.getcwd(),"template"))
